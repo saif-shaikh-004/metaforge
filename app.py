@@ -3,6 +3,7 @@ import pandas as pd
 import random
 import base64
 import os
+import gspread
 from collections import Counter
 from sheets import save_battle
 from datetime import datetime
@@ -565,46 +566,52 @@ elif page == "Statistics":
 
     try:
 
-        df = pd.read_csv("results.csv")
+        gc = gspread.service_account_from_dict(
+            st.secrets["gcp_service_account"]
+        )
 
+        sheet = gc.open("MetaForge")
+        worksheet = sheet.sheet1
+
+        data = worksheet.get_all_records()
+        df = pd.DataFrame(data)
+
+        if df.empty:
+            st.warning("No battle data found yet.")
+            st.stop()
+
+        # --- Total Battles ---
         st.metric(
             "Total Battles",
             len(df)
         )
 
+        # --- Win Rate ---
+        df["result"] = df["result"].astype(str).str.strip()
+
         win_rate = (
-            (df["result"] == "Win").mean()
-            * 100
+            (df["result"] == "Win").mean() * 100
         )
 
         st.metric(
             "Overall Player Win Rate",
-            f"{round(win_rate,1)}%"
+            f"{round(win_rate, 1)}%"
         )
 
         st.divider()
 
-        st.subheader(
-            "Most Popular Teams"
-        )
+        # --- Most Popular Teams ---
+        st.subheader("Most Popular Teams")
 
-        teams = Counter(
-            df["team"]
-        )
-
+        teams = Counter(df["team"])
         top_teams = teams.most_common(10)
 
         for team, count in top_teams:
+            st.write(f"{team} — {count} battles")
 
-            st.write(
-                f"{team} — {count} battles"
-            )
-
-    except:
-
-        st.warning(
-            "No battle data found yet."
-        )
+    except Exception as e:
+        st.warning("No battle data found yet.")
+        st.caption(f"Debug info: {e}")
 
 # ----------------------------------
 # FUTURE CONTENT
