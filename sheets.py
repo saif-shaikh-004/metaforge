@@ -6,8 +6,8 @@ scope = [
     "https://www.googleapis.com/auth/drive"
 ]
 
-creds = ServiceAccountCredentials.from_json_keyfile_name(
-    "metaforge-500220-7a0ab3377853.json",   # your file name
+creds = ServiceAccountCredentials.from_json_keyfile_dict(
+    st.secrets["gcp_service_account"],
     scope
 )
 
